@@ -1,10 +1,12 @@
 # CS305 Park University
 # Assignment #2 Starter Code
 # Solving Sudoku as a CSP
+# By Cyrille Tekam Tiako
+# 22 Aug 2024
 
 from cspProblem import Variable, CSP, Constraint
 from cspDFS import dfs_solve1    
-from operator import lt,ne,eq,gt
+from operator import lt, ne, eq, gt
 
 # Attention:
 # To test your code, add ?'s where you want to have the CSP solver determine
@@ -32,73 +34,82 @@ puzzle_text1 = """
 
 
 def puzzle_text_to_var_dict(txt):
-  """converts a textual representation of a sudoku board to a dictionary of
-  variables with (row, col) tuples as keys"""
-  variables = dict()
-  row, col = 1, 1
-  for c in txt:
-    if c >= '1' and c <= '9':
-      variables[row, col] = Variable('['+str(row)+','+str(col)+']', {int(c)}, (row, col))
-      col = (col % 9) + 1
-      if col == 1: 
-        row = (row % 9) + 1
-    if c == '?':
-      variables[row, col] = Variable('['+str(row)+','+str(col)+']', set(range(1,10)), (row, col))
-      col = (col % 9) + 1
-      if col == 1: 
-        row = (row % 9) + 1
-  return variables
+    """Converts a textual representation of a sudoku board to a dictionary of
+    variables with (row, col) tuples as keys."""
+    variables = dict()
+    row, col = 1, 1
+    for c in txt:
+        if c >= '1' and c <= '9':
+            variables[(row, col)] = Variable(f'[{row},{col}]', {int(c)}, (row, col))
+            col = (col % 9) + 1
+            if col == 1: 
+                row = (row % 9) + 1
+        elif c == '?':
+            variables[(row, col)] = Variable(f'[{row},{col}]', set(range(1, 10)), (row, col))
+            col = (col % 9) + 1
+            if col == 1: 
+                row = (row % 9) + 1
+    return variables
       
       
 def print_solution(sol, variables):
-  """prints out variable assignments as a sudoku board for a CSP sudoku solution"""
-  for r in range(1,10):
-    print(" ", end="")
-    for c in range(1,10):
-      print(sol[variables[r,c]], end="")
-      if c % 3 == 0 and c < 9:
-        print(" | ", end="")
-      else:
+    """Prints out variable assignments as a sudoku board for a CSP sudoku solution."""
+    for r in range(1, 10):
         print(" ", end="")
-    if r % 3 == 0 and r < 9:
-      print("\n-------+-------+------")
-    else:
-      print("")
-  
+        for c in range(1, 10):
+            print(sol[variables[(r, c)]], end="")
+            if c % 3 == 0 and c < 9:
+                print(" | ", end="")
+            else:
+                print(" ", end="")
+        if r % 3 == 0 and r < 9:
+            print("\n-------+-------+------")
+        else:
+            print("")
+
+
+def all_diff(variables):
+    """Returns a Constraint that enforces all variables to have different values."""
+    def constraint_function(*values):
+        return len(values) == len(set(values))
+    return Constraint("AllDiff", variables, constraint_function)
+
+
 def create_sudoku_constraints(variables): 
-  constraints = []
-  # TODO: Create Constraint objects and append them to the list of 
-  # constraints that this function returns. You will need to create 
-  # enough constraints to ensure no variables on the sudoku board have
-  # a value assignment that is inconsistent with the rules of sudoku. 
-  # Specifically: 
-  #  1) Every variable in a row of the puzzle must have unique values assigned
-  #     from the domain {1, 2, ... 9}
-  #  2) Every variable in a column of the puzzle must have unique values 
-  #     assigned from the domain {1, 2, ... 9}
-  #  3) Every variable in a block (see segmented portion of the strings above)
-  #     of the puzzle must have unique values assigned from the 
-  #     domain {1, 2, ... 9}
-  
-  # hint 1: you will want to use loops, generators, or comprehensions to
-  # create the constraints. There should be at least 27 of them, if not more,
-  # depending on your approach. 
+    constraints = []
+    
+    # Row constraints
+    for r in range(1, 10):
+        row_vars = [variables[(r, c)] for c in range(1, 10)]
+        constraints.append(all_diff(row_vars))
+    
+    # Column constraints
+    for c in range(1, 10):
+        col_vars = [variables[(r, c)] for r in range(1, 10)]
+        constraints.append(all_diff(col_vars))
+    
+    # Block constraints
+    for br in range(1, 10, 3):
+        for bc in range(1, 10, 3):
+            block_vars = [variables[(br + r, bc + c)] for r in range(3) for c in range(3)]
+            constraints.append(all_diff(block_vars))
+    
+    return constraints
 
-  # hint 2: you may want to create a custom function to use in your constraints 
-  # to enforce the uniqueness-among-variables constraint
-
-  return constraints
 
 def main():
-  puzzle_text = puzzle_text1
-  variables = puzzle_text_to_var_dict(puzzle_text)
-  constraints = create_sudoku_constraints(variables)
-  print("Input Puzzle: ")
-  print(puzzle_text)
-  print("Solution: ")
-  sudoku1 = CSP("sudoku", variables.values(), constraints)
-  sol = dfs_solve1(sudoku1)
-  print_solution(sol, variables)
+    puzzle_text = puzzle_text1
+    variables = puzzle_text_to_var_dict(puzzle_text)
+    constraints = create_sudoku_constraints(variables)
+    print("Input Puzzle: ")
+    print(puzzle_text)
+    print("Solution: ")
+    sudoku1 = CSP("sudoku", variables.values(), constraints)
+    sol = dfs_solve1(sudoku1)
+    print_solution(sol, variables)
+  
   
 if __name__ == '__main__':
-  main()
+    main()
+
+
